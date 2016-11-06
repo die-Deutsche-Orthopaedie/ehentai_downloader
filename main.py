@@ -4,10 +4,12 @@ import urllib2
 import os
 import sys
 from bs4 import BeautifulSoup
+opener = urllib2.build_opener()
+opener.addheaders.append(('Cookie', 'nw=1'))
 
 
 def find_title(first_page):
-    title = first_page.find('div', id='gd2').find('h1', id='gj').get_text()
+    title = first_page.find('title').get_text().replace(" - E-Hentai Galleries","")
     print title
     title = title.replace("/", "_")
     if (os.path.exists(title)):
@@ -26,7 +28,7 @@ def download_img(url, path, index):
                 print "Image Url: " + url
                 break
             print "Downloading Page %d" % index
-            file = urllib2.urlopen(url)
+            file = opener.open(url)
         except:
             fails += 1
             print "Downloading Page %d Fail %d" % (index, fails)
@@ -53,16 +55,16 @@ def open_page(url, title):
                         print 'Download Failed'
                         return
                     print "Opening Page %d" % index
-                    open_page = BeautifulSoup(urllib2.urlopen(current_page), 'lxml')
+                    open_page = BeautifulSoup(opener.open(current_page), 'lxml')
                 except:
                     page_fails += 1
                     print "Opening Page %d Fail %d" % (index, page_fails)
                 else:
-                    img_url = open_page.find('img', id='img')['src']
-                    path = os.path.join(title, "%02d" % index + os.path.splitext(img_url)[1])
+                    img_url = open_page.find('img', onerror=True)['src']
+                    path = os.path.join(title, "%s" % os.path.basename(img_url))
                     download_img(img_url, path, index)
                     last_page = current_page
-                    current_page = open_page.find('div', id='i3').find('a')['href']
+                    current_page = open_page.find('div', attrs={"class" : "sn"}).findAll('a')[2]['href']
                     break
 
 if __name__ == '__main__':
@@ -70,7 +72,7 @@ if __name__ == '__main__':
     if hentai_url is None:
         print "The Url Can NOT Be Nil"
         exit()
-    main_page = BeautifulSoup(urllib2.urlopen(hentai_url).read(), 'lxml')
+    main_page = BeautifulSoup(opener.open(hentai_url).read(), 'lxml')
     title = find_title(main_page)
     index = 0
     if title is not None:
